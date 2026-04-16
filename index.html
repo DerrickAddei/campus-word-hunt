@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Campus Word Hunt</title>
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'rugged-bg': '#1c1917', // stone-900
+                        'rugged-panel': '#292524', // stone-800
+                        'rugged-accent': '#d97706', // amber-600
+                        'rugged-text': '#f5f5f4', // stone-100
+                    },
+                    fontFamily: {
+                        'sans': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+                        'mono': ['ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Rugged, thick borders for the outdoor aesthetic */
+        .rugged-border {
+            border: 4px solid #44403c; /* stone-700 */
+            box-shadow: 4px 4px 0px 0px rgba(68, 64, 60, 1);
+        }
+        .rugged-border-active {
+            border: 4px solid #d97706; /* amber-600 */
+            box-shadow: 4px 4px 0px 0px rgba(217, 119, 6, 1);
+        }
+        
+        /* Toast animation */
+        @keyframes slideIn {
+            from { transform: translateY(-100%); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .toast-animate {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-rugged-bg text-rugged-text font-sans antialiased min-h-screen flex flex-col selection:bg-rugged-accent selection:text-white">
+
+    <!-- Toast Notification System (Hidden by default) -->
+    <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none hidden">
+        <!-- Toasts injected here -->
+    </div>
+
+    <!-- Main Header -->
+    <header class="bg-rugged-panel border-b-4 border-stone-700 p-6 shadow-md text-center">
+        <h1 class="text-3xl font-black tracking-widest uppercase text-rugged-accent">Word Hunt</h1>
+        <p class="text-stone-400 text-sm mt-1 uppercase tracking-wider font-semibold">Frostburg Campus Edition</p>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow p-6 flex flex-col items-center max-w-2xl mx-auto w-full">
+        
+        <!-- Progress Bar -->
+        <div class="w-full mb-8" id="progress-section">
+            <div class="flex justify-between items-end mb-2">
+                <span class="text-lg font-bold uppercase tracking-wide">Progress</span>
+                <span id="progress-text" class="text-xl font-black text-rugged-accent">0 / 7</span>
+            </div>
+            <div class="w-full bg-stone-800 h-6 rugged-border relative">
+                <div id="progress-fill" class="bg-rugged-accent h-full w-0 transition-all duration-500 ease-out"></div>
+            </div>
+        </div>
+
+        <!-- Dashboard / Quote Area -->
+        <div class="w-full bg-rugged-panel p-6 rugged-border mb-8">
+            <h2 class="text-stone-400 uppercase tracking-widest text-xs font-bold mb-6">Target Phrase:</h2>
+            
+            <!-- Words Container -->
+            <div id="quote-container" class="flex flex-wrap gap-4 justify-center items-center">
+                <!-- Word slots will be generated here by JavaScript -->
+            </div>
+        </div>
+
+        <!-- Instructions (Hidden on Victory) -->
+        <div id="instructions" class="text-center w-full bg-stone-800 p-5 rounded-sm border-l-4 border-rugged-accent">
+            <svg class="w-8 h-8 mx-auto text-rugged-accent mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <p class="text-stone-300 font-medium">Explore the campus and scan the hidden QR codes to reveal the missing words.</p>
+        </div>
+
+        <!-- Victory State (Hidden by default) -->
+        <div id="victory-section" class="hidden w-full bg-green-900 border-4 border-green-500 p-8 text-center shadow-[6px_6px_0_0_rgba(34,197,94,1)] mt-4">
+            <h2 class="text-4xl font-black text-white mb-2 uppercase tracking-widest">Victory!</h2>
+            <p class="text-green-200 mb-6 font-medium">You have found all the words.</p>
+            
+            <div class="bg-black/40 p-4 border-2 border-green-400">
+                <p class="text-green-300 uppercase text-xs tracking-widest font-bold mb-2">Treasurer Verification Code</p>
+                <div id="completion-code" class="text-4xl font-mono font-bold text-white tracking-widest">
+                    <!-- Code generated here -->
+                </div>
+            </div>
+            <p class="text-sm text-green-200 mt-4">Take a screenshot and show this code to the Treasurer to claim your prize!</p>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="p-6 text-center mt-auto">
+        <!-- Hidden Reset Button (Opacity 10%, reveals on hover/tap) -->
+        <button onclick="resetGame()" class="opacity-10 hover:opacity-100 transition-opacity text-stone-500 text-xs font-mono border border-stone-600 px-3 py-1 rounded">
+            [ Admin: Reset Progress ]
+        </button>
+    </footer>
+
+    <!-- Application Logic -->
+    <script>
+        // 1. Define the Quote Data
+        // Each word has an ID that matches the expected ?wordID=[Number] in the URL
+        const quoteData = [
+            { id: 1, text: "What" },
+            { id: 2, text: "good" },
+            { id: 3, text: "is" },
+            { id: 4, text: "your" },
+            { id: 5, text: "faith" },
+            { id: 6, text: "without" },
+            { id: 7, text: "works?" }
+        ];
+
+        // 2. State Management (localStorage)
+        const STORAGE_KEY = 'fsu_word_hunt_progress';
+        const CODE_KEY = 'fsu_word_hunt_victory_code';
+        
+        let foundWordIds = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+
+        // 3. Initialization
+        function init() {
+            processURL();
+            renderDashboard();
+            checkVictory();
+        }
+
+        // 4. Process incoming QR Code URLs
+        function processURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const scannedId = urlParams.get('wordID');
+
+            if (scannedId) {
+                const wordIdNum = parseInt(scannedId, 10);
+                const targetWord = quoteData.find(w => w.id === wordIdNum);
+
+                if (targetWord) {
+                    // Valid word scanned
+                    if (!foundWordIds.includes(wordIdNum)) {
+                        foundWordIds.push(wordIdNum);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(foundWordIds));
+                        showToast(`New word found: "${targetWord.text}"`, 'success');
+                    } else {
+                        showToast(`You already found word #${wordIdNum}!`, 'info');
+                    }
+                } else {
+                    // Invalid ID scanned
+                    showToast('Invalid QR Code!', 'error');
+                }
+
+                // Clean the URL so refreshing doesn't re-trigger the logic
+                // Using replaceState keeps the user on the page without reloading
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+
+        // 5. Render the UI
+        function renderDashboard() {
+            const container = document.getElementById('quote-container');
+            container.innerHTML = ''; // Clear existing
+
+            // Render each word block
+            quoteData.forEach(word => {
+                const isFound = foundWordIds.includes(word.id);
+                
+                const wordElement = document.createElement('div');
+                
+                if (isFound) {
+                    wordElement.className = 'bg-rugged-accent text-white font-black text-2xl md:text-3xl px-4 py-3 rugged-border-active uppercase tracking-wide';
+                    wordElement.innerText = word.text;
+                } else {
+                    wordElement.className = 'bg-stone-800 text-stone-600 font-black text-2xl md:text-3xl px-4 py-3 rugged-border uppercase tracking-widest';
+                    wordElement.innerText = '____';
+                }
+                
+                container.appendChild(wordElement);
+            });
+
+            // Update Progress Bar
+            const totalWords = quoteData.length;
+            const foundCount = foundWordIds.length;
+            const percentage = (foundCount / totalWords) * 100;
+
+            document.getElementById('progress-text').innerText = `${foundCount} / ${totalWords}`;
+            document.getElementById('progress-fill').style.width = `${percentage}%`;
+        }
+
+        // 6. Check for Win Condition
+        function checkVictory() {
+            if (foundWordIds.length === quoteData.length) {
+                // Hide instructions
+                document.getElementById('instructions').classList.add('hidden');
+                
+                // Show victory section
+                const victorySection = document.getElementById('victory-section');
+                victorySection.classList.remove('hidden');
+
+                // Generate or retrieve verification code
+                let code = localStorage.getItem(CODE_KEY);
+                if (!code) {
+                    // Generate a random 6-character alphanumeric code
+                    const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed lookalikes (0,O,1,I)
+                    code = 'FSU-';
+                    for (let i = 0; i < 6; i++) {
+                        code += characters.charAt(Math.floor(Math.random() * characters.length));
+                    }
+                    localStorage.setItem(CODE_KEY, code);
+                }
+
+                document.getElementById('completion-code').innerText = code;
+            }
+        }
+
+        // 7. Utility: Custom Toast Notifications
+        function showToast(message, type) {
+            const container = document.getElementById('toast-container');
+            container.classList.remove('hidden');
+
+            const toast = document.createElement('div');
+            
+            let bgClass = 'bg-stone-800 border-stone-600';
+            if(type === 'success') bgClass = 'bg-rugged-accent border-amber-400';
+            if(type === 'error') bgClass = 'bg-red-700 border-red-400';
+
+            toast.className = `${bgClass} text-white px-6 py-4 border-2 shadow-lg font-bold uppercase tracking-wide text-sm toast-animate`;
+            toast.innerText = message;
+
+            container.appendChild(toast);
+
+            // Remove toast after 4 seconds
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(-10px)';
+                toast.style.transition = 'all 0.3s ease';
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // 8. Admin Reset Function (Hidden in footer)
+        function resetGame() {
+            if(confirm("Admin: Are you sure you want to reset all progress? This cannot be undone.")) {
+                localStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem(CODE_KEY);
+                window.location.reload();
+            }
+        }
+
+        // Boot the app
+        window.onload = init;
+    </script>
+</body>
+</html>
