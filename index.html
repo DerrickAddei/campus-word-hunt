@@ -25,16 +25,34 @@
         }
     </script>
     <style>
-        /* Rugged, thick borders for the outdoor aesthetic */
+        /* Rugged borders */
         .rugged-border {
-            border: 4px solid #44403c; /* stone-700 */
+            border: 4px solid #44403c;
             box-shadow: 4px 4px 0px 0px rgba(68, 64, 60, 1);
         }
         .rugged-border-active {
-            border: 4px solid #d97706; /* amber-600 */
+            border: 4px solid #d97706;
             box-shadow: 4px 4px 0px 0px rgba(217, 119, 6, 1);
         }
         
+        /* Digital Ticket specific styles */
+        .ticket-cutout {
+            position: relative;
+        }
+        .ticket-cutout::before, .ticket-cutout::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 30px;
+            height: 30px;
+            background-color: #1c1917; /* matches body bg */
+            border-radius: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
+        }
+        .ticket-cutout::before { left: -15px; }
+        .ticket-cutout::after { right: -15px; }
+
         /* Toast animation */
         @keyframes slideIn {
             from { transform: translateY(-100%); opacity: 0; }
@@ -43,14 +61,18 @@
         .toast-animate {
             animation: slideIn 0.3s ease-out forwards;
         }
+        
+        /* Prevent selection during triple-tap */
+        .no-select {
+            -webkit-user-select: none;
+            user-select: none;
+        }
     </style>
 </head>
-<body class="bg-rugged-bg text-rugged-text font-sans antialiased min-h-screen flex flex-col selection:bg-rugged-accent selection:text-white">
+<body class="bg-rugged-bg text-rugged-text font-sans antialiased min-h-screen flex flex-col selection:bg-rugged-accent selection:text-white pb-10">
 
-    <!-- Toast Notification System (Hidden by default) -->
-    <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none hidden">
-        <!-- Toasts injected here -->
-    </div>
+    <!-- Toast Notification System -->
+    <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none hidden"></div>
 
     <!-- Main Header -->
     <header class="bg-rugged-panel border-b-4 border-stone-700 p-6 shadow-md text-center">
@@ -61,8 +83,8 @@
     <!-- Main Content Area -->
     <main class="flex-grow p-6 flex flex-col items-center max-w-2xl mx-auto w-full">
         
-        <!-- Progress Bar -->
-        <div class="w-full mb-8" id="progress-section">
+        <!-- Progress Bar (TRIPLE TAP THIS FOR ADMIN RESET) -->
+        <div class="w-full mb-8 no-select cursor-pointer" id="progress-header" onclick="handleProgressTap()">
             <div class="flex justify-between items-end mb-2">
                 <span class="text-lg font-bold uppercase tracking-wide">Progress</span>
                 <span id="progress-text" class="text-xl font-black text-rugged-accent">0 / 7</span>
@@ -75,113 +97,136 @@
         <!-- Dashboard / Quote Area -->
         <div class="w-full bg-rugged-panel p-6 rugged-border mb-8">
             <h2 class="text-stone-400 uppercase tracking-widest text-xs font-bold mb-6">Target Phrase:</h2>
-            
-            <!-- Words Container -->
             <div id="quote-container" class="flex flex-wrap gap-4 justify-center items-center">
-                <!-- Word slots will be generated here by JavaScript -->
+                <!-- Word slots injected via JS -->
             </div>
         </div>
 
-        <!-- Instructions (Hidden on Victory) -->
+        <!-- Instructions -->
         <div id="instructions" class="text-center w-full bg-stone-800 p-5 rounded-sm border-l-4 border-rugged-accent">
-            <svg class="w-8 h-8 mx-auto text-rugged-accent mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+            <svg class="w-8 h-8 mx-auto text-rugged-accent mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
             <p class="text-stone-300 font-medium">Explore the campus and scan the hidden QR codes to reveal the missing words.</p>
         </div>
 
-        <!-- Victory State (Hidden by default) -->
-        <div id="victory-section" class="hidden w-full bg-green-900 border-4 border-green-500 p-8 text-center shadow-[6px_6px_0_0_rgba(34,197,94,1)] mt-4">
-            <h2 class="text-4xl font-black text-white mb-2 uppercase tracking-widest">Victory!</h2>
-            <p class="text-green-200 mb-6 font-medium">You have found all the words.</p>
-            
-            <div class="bg-black/40 p-4 border-2 border-green-400">
-                <p class="text-green-300 uppercase text-xs tracking-widest font-bold mb-2">Treasurer Verification Code</p>
-                <div id="completion-code" class="text-4xl font-mono font-bold text-white tracking-widest">
-                    <!-- Code generated here -->
+        <!-- THE GATEKEEPER TICKET (Hidden until Victory) -->
+        <div id="victory-ticket" class="hidden w-full mt-4 transform rotate-1 transition-transform duration-500 hover:rotate-0">
+            <div class="bg-amber-500 p-2 rounded-lg shadow-[0_10px_25px_rgba(217,119,6,0.5)] ticket-cutout">
+                <div class="bg-black border-4 border-dashed border-amber-500 p-8 rounded text-center relative overflow-hidden">
+                    <!-- Subtle background barcode stripe -->
+                    <div class="absolute top-0 left-0 w-full h-2 opacity-30 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,#d97706_2px,#d97706_4px)]"></div>
+                    
+                    <h3 class="text-amber-500 uppercase tracking-widest text-xs font-bold mb-2">Access Granted</h3>
+                    <h2 class="text-white text-3xl md:text-4xl font-black uppercase mb-6 tracking-wider">Gatekeeper Code</h2>
+                    
+                    <div class="bg-amber-500 text-black font-mono text-4xl md:text-5xl py-4 px-2 font-bold tracking-widest rounded shadow-inner" id="master-code">
+                        <!-- Code injected here -->
+                    </div>
+                    
+                    <p class="text-amber-600 mt-6 text-xs font-bold uppercase tracking-widest">Screenshot & Show to Treasurer</p>
+                    
+                    <div class="absolute bottom-0 left-0 w-full h-2 opacity-30 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,#d97706_2px,#d97706_4px)]"></div>
                 </div>
             </div>
-            <p class="text-sm text-green-200 mt-4">Take a screenshot and show this code to the Treasurer to claim your prize!</p>
         </div>
 
     </main>
 
-    <!-- Footer -->
-    <footer class="p-6 text-center mt-auto">
-        <!-- Hidden Reset Button (Opacity 10%, reveals on hover/tap) -->
-        <button onclick="resetGame()" class="opacity-10 hover:opacity-100 transition-opacity text-stone-500 text-xs font-mono border border-stone-600 px-3 py-1 rounded">
-            [ Admin: Reset Progress ]
-        </button>
-    </footer>
-
     <!-- Application Logic -->
     <script>
-        // 1. Define the Quote Data
-        // Each word has an ID that matches the expected ?wordID=[Number] in the URL
-        const quoteData = [
-            { id: 1, text: "What" },
-            { id: 2, text: "good" },
-            { id: 3, text: "is" },
-            { id: 4, text: "your" },
-            { id: 5, text: "faith" },
-            { id: 6, text: "without" },
-            { id: 7, text: "works?" }
-        ];
+        // 1. OBFUSCATED DATA DICTIONARY
+        // Keys: Unique 4-character hashes used in QR URLs (?word=XJ92)
+        // Values: Base64 encoded target words to prevent source-code reading
+        const secureDict = {
+            "A7X9": "V2hhdA==",     // What
+            "M3V2": "Z29vZA==",     // good
+            "K8L1": "aXM=",         // is
+            "P9Q4": "eW91cg==",     // your
+            "R2T6": "ZmFpdGg=",     // faith
+            "W5B8": "d2l0aG91dA==", // without
+            "Z1C3": "d29ya3M/"      // works?
+        };
 
-        // 2. State Management (localStorage)
-        const STORAGE_KEY = 'fsu_word_hunt_progress';
-        const CODE_KEY = 'fsu_word_hunt_victory_code';
+        // The exact sequence of the phrase based on the hashes
+        const sequence = ["A7X9", "M3V2", "K8L1", "P9Q4", "R2T6", "W5B8", "Z1C3"];
+
+        // 2. STATE MANAGEMENT (Persistence Check)
+        const STORAGE_KEY = 'fsu_hunt_persisted_keys';
+        const CODE_KEY = 'fsu_hunt_gatekeeper_auth';
         
-        let foundWordIds = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        // Load from storage immediately. If user closes browser, this retrieves it.
+        let foundKeys = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
 
-        // 3. Initialization
+        // 3. ADMIN RESET LOGIC (Triple Tap UI Hardening)
+        let tapCount = 0;
+        let tapTimer = null;
+
+        function handleProgressTap() {
+            tapCount++;
+            clearTimeout(tapTimer);
+            
+            // If tapped 3 times within 1.5 seconds, reset.
+            if (tapCount >= 3) {
+                if(confirm("ADMIN OVERRIDE: Reset all student progress?")) {
+                    localStorage.removeItem(STORAGE_KEY);
+                    localStorage.removeItem(CODE_KEY);
+                    window.location.replace(window.location.pathname); // clear URL params and reload
+                }
+                tapCount = 0;
+            } else {
+                // Reset tap count after 1.5 seconds of inactivity
+                tapTimer = setTimeout(() => { tapCount = 0; }, 1500);
+            }
+        }
+
+        // 4. CORE ENGINE
         function init() {
             processURL();
             renderDashboard();
             checkVictory();
         }
 
-        // 4. Process incoming QR Code URLs
+        // Process URL Parameter (?word=XXXX)
         function processURL() {
             const urlParams = new URLSearchParams(window.location.search);
-            const scannedId = urlParams.get('wordID');
+            const scannedKey = urlParams.get('word');
 
-            if (scannedId) {
-                const wordIdNum = parseInt(scannedId, 10);
-                const targetWord = quoteData.find(w => w.id === wordIdNum);
+            if (scannedKey) {
+                const upperKey = scannedKey.toUpperCase();
 
-                if (targetWord) {
-                    // Valid word scanned
-                    if (!foundWordIds.includes(wordIdNum)) {
-                        foundWordIds.push(wordIdNum);
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(foundWordIds));
-                        showToast(`New word found: "${targetWord.text}"`, 'success');
+                // Check if the scanned hash exists in our dictionary
+                if (secureDict[upperKey]) {
+                    if (!foundKeys.includes(upperKey)) {
+                        foundKeys.push(upperKey);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(foundKeys));
+                        
+                        // Decode Base64 for the success message
+                        const decodedWord = atob(secureDict[upperKey]);
+                        showToast(`Data Extracted: "${decodedWord}"`, 'success');
                     } else {
-                        showToast(`You already found word #${wordIdNum}!`, 'info');
+                        showToast(`Duplicate Code: Word already secured.`, 'info');
                     }
                 } else {
-                    // Invalid ID scanned
-                    showToast('Invalid QR Code!', 'error');
+                    showToast('ERROR: Invalid or Corrupted QR Code.', 'error');
                 }
 
-                // Clean the URL so refreshing doesn't re-trigger the logic
-                // Using replaceState keeps the user on the page without reloading
+                // URL Obfuscation: Erase the parameter from the browser bar immediately
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
 
-        // 5. Render the UI
+        // Render UI Dashboard
         function renderDashboard() {
             const container = document.getElementById('quote-container');
-            container.innerHTML = ''; // Clear existing
+            container.innerHTML = ''; 
 
-            // Render each word block
-            quoteData.forEach(word => {
-                const isFound = foundWordIds.includes(word.id);
-                
+            sequence.forEach(key => {
+                const isFound = foundKeys.includes(key);
                 const wordElement = document.createElement('div');
                 
                 if (isFound) {
+                    // Decode the Base64 string to display the actual word
                     wordElement.className = 'bg-rugged-accent text-white font-black text-2xl md:text-3xl px-4 py-3 rugged-border-active uppercase tracking-wide';
-                    wordElement.innerText = word.text;
+                    wordElement.innerText = atob(secureDict[key]);
                 } else {
                     wordElement.className = 'bg-stone-800 text-stone-600 font-black text-2xl md:text-3xl px-4 py-3 rugged-border uppercase tracking-widest';
                     wordElement.innerText = '____';
@@ -190,48 +235,46 @@
                 container.appendChild(wordElement);
             });
 
-            // Update Progress Bar
-            const totalWords = quoteData.length;
-            const foundCount = foundWordIds.length;
+            // Update UI Progress Math
+            const totalWords = sequence.length;
+            const foundCount = foundKeys.length;
             const percentage = (foundCount / totalWords) * 100;
 
             document.getElementById('progress-text').innerText = `${foundCount} / ${totalWords}`;
             document.getElementById('progress-fill').style.width = `${percentage}%`;
         }
 
-        // 6. Check for Win Condition
+        // Victory & Gatekeeper Authorization
         function checkVictory() {
-            if (foundWordIds.length === quoteData.length) {
-                // Hide instructions
+            if (foundKeys.length === sequence.length) {
                 document.getElementById('instructions').classList.add('hidden');
                 
-                // Show victory section
-                const victorySection = document.getElementById('victory-section');
-                victorySection.classList.remove('hidden');
+                const ticketSection = document.getElementById('victory-ticket');
+                ticketSection.classList.remove('hidden');
 
-                // Generate or retrieve verification code
-                let code = localStorage.getItem(CODE_KEY);
-                if (!code) {
-                    // Generate a random 6-character alphanumeric code
-                    const characters = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Removed lookalikes (0,O,1,I)
-                    code = 'FSU-';
-                    for (let i = 0; i < 6; i++) {
-                        code += characters.charAt(Math.floor(Math.random() * characters.length));
+                // Generate or retrieve the Gatekeeper Authorization code
+                let authCode = localStorage.getItem(CODE_KEY);
+                if (!authCode) {
+                    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+                    authCode = '';
+                    for (let i = 0; i < 7; i++) {
+                        authCode += chars.charAt(Math.floor(Math.random() * chars.length));
                     }
-                    localStorage.setItem(CODE_KEY, code);
+                    localStorage.setItem(CODE_KEY, authCode);
                 }
 
-                document.getElementById('completion-code').innerText = code;
+                // Add spaces for visual flair on the ticket (e.g. X Y 9 2 - A B C)
+                const formattedCode = authCode.split('').join(' ');
+                document.getElementById('master-code').innerText = formattedCode;
             }
         }
 
-        // 7. Utility: Custom Toast Notifications
+        // Custom Toast Engine
         function showToast(message, type) {
             const container = document.getElementById('toast-container');
             container.classList.remove('hidden');
 
             const toast = document.createElement('div');
-            
             let bgClass = 'bg-stone-800 border-stone-600';
             if(type === 'success') bgClass = 'bg-rugged-accent border-amber-400';
             if(type === 'error') bgClass = 'bg-red-700 border-red-400';
@@ -241,22 +284,12 @@
 
             container.appendChild(toast);
 
-            // Remove toast after 4 seconds
             setTimeout(() => {
                 toast.style.opacity = '0';
                 toast.style.transform = 'translateY(-10px)';
                 toast.style.transition = 'all 0.3s ease';
                 setTimeout(() => toast.remove(), 300);
-            }, 4000);
-        }
-
-        // 8. Admin Reset Function (Hidden in footer)
-        function resetGame() {
-            if(confirm("Admin: Are you sure you want to reset all progress? This cannot be undone.")) {
-                localStorage.removeItem(STORAGE_KEY);
-                localStorage.removeItem(CODE_KEY);
-                window.location.reload();
-            }
+            }, 3500);
         }
 
         // Boot the app
