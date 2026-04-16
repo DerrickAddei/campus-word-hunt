@@ -27,12 +27,16 @@
     <style>
         /* Rugged borders */
         .rugged-border {
-            border: 4px solid #44403c;
-            box-shadow: 4px 4px 0px 0px rgba(68, 64, 60, 1);
+            border: 2px solid #44403c;
+            box-shadow: 2px 2px 0px 0px rgba(68, 64, 60, 1);
         }
         .rugged-border-active {
-            border: 4px solid #d97706;
-            box-shadow: 4px 4px 0px 0px rgba(217, 119, 6, 1);
+            border: 2px solid #d97706;
+            box-shadow: 2px 2px 0px 0px rgba(217, 119, 6, 1);
+        }
+        .rugged-border-dashed {
+            border: 2px dashed #57534e;
+            background-color: rgba(28, 25, 23, 0.5);
         }
         
         /* Digital Ticket specific styles */
@@ -45,7 +49,7 @@
             top: 50%;
             width: 30px;
             height: 30px;
-            background-color: #1c1917; /* matches body bg */
+            background-color: #1c1917;
             border-radius: 50%;
             transform: translateY(-50%);
             z-index: 10;
@@ -62,10 +66,18 @@
             animation: slideIn 0.3s ease-out forwards;
         }
         
-        /* Prevent selection during triple-tap */
+        /* Prevent selection during interactions */
         .no-select {
             -webkit-user-select: none;
             user-select: none;
+        }
+
+        /* Tile pop animation */
+        .tile-pop {
+            transition: transform 0.1s ease-in-out;
+        }
+        .tile-pop:active {
+            transform: scale(0.95);
         }
     </style>
 </head>
@@ -75,50 +87,65 @@
     <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none hidden"></div>
 
     <!-- Main Header -->
-    <header class="bg-rugged-panel border-b-4 border-stone-700 p-6 shadow-md text-center">
-        <h1 class="text-3xl font-black tracking-widest uppercase text-rugged-accent">Word Hunt</h1>
-        <p class="text-stone-400 text-sm mt-1 uppercase tracking-wider font-semibold">Frostburg Campus Edition</p>
+    <header class="bg-rugged-panel border-b-4 border-stone-700 p-4 shadow-md text-center shrink-0">
+        <h1 class="text-2xl md:text-3xl font-black tracking-widest uppercase text-rugged-accent">Word Hunt</h1>
+        <p class="text-stone-400 text-xs md:text-sm mt-1 uppercase tracking-wider font-semibold">Frostburg Campus Edition</p>
     </header>
 
     <!-- Main Content Area -->
-    <main class="flex-grow p-6 flex flex-col items-center max-w-2xl mx-auto w-full">
+    <main class="flex-grow p-4 flex flex-col items-center max-w-3xl mx-auto w-full gap-6">
         
-        <!-- Progress Bar (TRIPLE TAP THIS FOR ADMIN RESET) -->
-        <div class="w-full mb-8 no-select cursor-pointer" id="progress-header" onclick="handleProgressTap()">
-            <div class="flex justify-between items-end mb-2">
-                <span class="text-lg font-bold uppercase tracking-wide">Progress</span>
-                <span id="progress-text" class="text-xl font-black text-rugged-accent">0 / 7</span>
+        <!-- Game Container (Hidden on Victory) -->
+        <div id="game-section" class="w-full flex flex-col gap-6">
+            
+            <!-- Progress Counter (TRIPLE TAP FOR ADMIN RESET) -->
+            <div class="w-full bg-stone-800 p-4 rounded border-l-4 border-rugged-accent no-select cursor-pointer flex justify-between items-center" onclick="handleProgressTap()">
+                <span class="text-stone-300 font-bold uppercase tracking-widest text-sm">Words Collected:</span>
+                <span id="progress-text" class="text-2xl font-black text-rugged-accent">0 / 14</span>
             </div>
-            <div class="w-full bg-stone-800 h-6 rugged-border relative">
-                <div id="progress-fill" class="bg-rugged-accent h-full w-0 transition-all duration-500 ease-out"></div>
-            </div>
-        </div>
 
-        <!-- Dashboard / Quote Area -->
-        <div class="w-full bg-rugged-panel p-6 rugged-border mb-8">
-            <h2 class="text-stone-400 uppercase tracking-widest text-xs font-bold mb-6">Target Phrase:</h2>
-            <div id="quote-container" class="flex flex-wrap gap-4 justify-center items-center">
-                <!-- Word slots injected via JS -->
+            <!-- The Assembly Grid -->
+            <div class="w-full bg-rugged-panel p-4 md:p-6 rugged-border">
+                <div class="flex justify-between items-end mb-4">
+                    <h2 class="text-stone-400 uppercase tracking-widest text-xs font-bold">Assembly Grid</h2>
+                    <span class="text-xs text-stone-500 italic">Tap to remove</span>
+                </div>
+                <!-- 14 Slots -->
+                <div id="assembly-grid" class="flex flex-wrap gap-2 md:gap-3">
+                    <!-- Slots injected via JS -->
+                </div>
             </div>
-        </div>
 
-        <!-- Instructions -->
-        <div id="instructions" class="text-center w-full bg-stone-800 p-5 rounded-sm border-l-4 border-rugged-accent">
-            <svg class="w-8 h-8 mx-auto text-rugged-accent mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-            <p class="text-stone-300 font-medium">Explore the campus and scan the hidden QR codes to reveal the missing words.</p>
+            <!-- The Word Bank -->
+            <div class="w-full bg-stone-800 p-4 md:p-6 rugged-border">
+                <div class="flex justify-between items-end mb-4">
+                    <h2 class="text-stone-400 uppercase tracking-widest text-xs font-bold">Word Bank</h2>
+                    <span class="text-xs text-stone-500 italic">Tap to place</span>
+                </div>
+                <!-- Unlocked Words -->
+                <div id="word-bank" class="flex flex-wrap gap-2 md:gap-3 min-h-[100px] items-start content-start">
+                    <!-- Bank items injected via JS -->
+                </div>
+                <div id="bank-empty-state" class="text-center text-stone-500 text-sm italic w-full py-4">
+                    Scan QR codes to fill your bank.
+                </div>
+            </div>
         </div>
 
         <!-- THE GATEKEEPER TICKET (Hidden until Victory) -->
         <div id="victory-ticket" class="hidden w-full mt-4 transform rotate-1 transition-transform duration-500 hover:rotate-0">
             <div class="bg-amber-500 p-2 rounded-lg shadow-[0_10px_25px_rgba(217,119,6,0.5)] ticket-cutout">
-                <div class="bg-black border-4 border-dashed border-amber-500 p-8 rounded text-center relative overflow-hidden">
-                    <!-- Subtle background barcode stripe -->
+                <div class="bg-black border-4 border-dashed border-amber-500 p-6 md:p-8 rounded text-center relative overflow-hidden">
                     <div class="absolute top-0 left-0 w-full h-2 opacity-30 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,#d97706_2px,#d97706_4px)]"></div>
                     
-                    <h3 class="text-amber-500 uppercase tracking-widest text-xs font-bold mb-2">Access Granted</h3>
-                    <h2 class="text-white text-3xl md:text-4xl font-black uppercase mb-6 tracking-wider">Gatekeeper Code</h2>
+                    <h3 class="text-amber-500 uppercase tracking-widest text-xs font-bold mb-2">Sequence Verified</h3>
+                    <h2 class="text-white text-3xl md:text-4xl font-black uppercase mb-4 tracking-wider">Gatekeeper Code</h2>
                     
-                    <div class="bg-amber-500 text-black font-mono text-4xl md:text-5xl py-4 px-2 font-bold tracking-widest rounded shadow-inner" id="master-code">
+                    <p class="text-stone-300 italic text-sm md:text-base mb-6 px-4">
+                        "The devil will offer you the world and it will cost you your soul. Jesus will give you everything, but it cost His life."
+                    </p>
+
+                    <div class="bg-amber-500 text-black font-mono text-3xl md:text-5xl py-4 px-2 font-bold tracking-widest rounded shadow-inner" id="master-code">
                         <!-- Code injected here -->
                     </div>
                     
@@ -133,47 +160,60 @@
 
     <!-- Application Logic -->
     <script>
-        // 1. OBFUSCATED DATA DICTIONARY
-        // Keys: Unique 4-character hashes used in QR URLs (?word=XJ92)
-        // Values: Base64 encoded target words to prevent source-code reading
-        const secureDict = {
-            "A7X9": "V2hhdA==",     // What
-            "M3V2": "Z29vZA==",     // good
-            "K8L1": "aXM=",         // is
-            "P9Q4": "eW91cg==",     // your
-            "R2T6": "ZmFpdGg=",     // faith
-            "W5B8": "d2l0aG91dA==", // without
-            "Z1C3": "d29ya3M/"      // works?
-        };
+        // 1. DATA DICTIONARY & CORRECT SEQUENCE
+        // Keys: Unique 4-character hashes used in QR URLs (?wordID=XJ92)
+        // Values: Base64 encoded target words
+        const puzzleData = [
+            { id: "Q1W2", b64: "VGhlIGRldmls" },           // The devil
+            { id: "E3R4", b64: "d2lsbCBvZmZlcg==" },       // will offer
+            { id: "T5Y6", b64: "eW91" },                   // you
+            { id: "U7I8", b64: "dGhlIHdvcmxk" },           // the world
+            { id: "O9P0", b64: "YW5kIGl0" },               // and it
+            { id: "A1S2", b64: "d2lsbCBjb3N0" },           // will cost
+            { id: "D3F4", b64: "eW91" },                   // you
+            { id: "G5H6", b64: "eW91ciBzb3VsLg==" },       // your soul.
+            { id: "J7K8", b64: "SmVzdXM=" },               // Jesus
+            { id: "L9Z0", b64: "d2lsbCBnaXZl" },           // will give
+            { id: "X1C2", b64: "eW91IGV2ZXJ5dGhpbmcs" },   // you everything,
+            { id: "V3B4", b64: "YnV0IGl0IGNvc3Q=" },       // but it cost
+            { id: "N5M6", b64: "SGlz" },                   // His
+            { id: "Q8W9", b64: "bGlmZS4=" }                // life.
+        ];
 
-        // The exact sequence of the phrase based on the hashes
-        const sequence = ["A7X9", "M3V2", "K8L1", "P9Q4", "R2T6", "W5B8", "Z1C3"];
+        // The exact ordered sequence required for victory
+        const correctSequence = puzzleData.map(item => item.id);
+        const TOTAL_WORDS = 14;
 
-        // 2. STATE MANAGEMENT (Persistence Check)
-        const STORAGE_KEY = 'fsu_hunt_persisted_keys';
-        const CODE_KEY = 'fsu_hunt_gatekeeper_auth';
+        // 2. STATE MANAGEMENT (Persistence via LocalStorage)
+        const KEYS_STORAGE = 'fsu_puzzle_unlocked_v2';
+        const GRID_STORAGE = 'fsu_puzzle_grid_v2';
+        const CODE_STORAGE = 'fsu_puzzle_auth_v2';
         
-        // Load from storage immediately. If user closes browser, this retrieves it.
-        let foundKeys = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+        // unlockedKeys: Array of strings (e.g. ['Q1W2', 'E3R4'])
+        let unlockedKeys = JSON.parse(localStorage.getItem(KEYS_STORAGE)) || [];
+        
+        // gridState: Array of length 14, contains either an ID string or null
+        let gridState = JSON.parse(localStorage.getItem(GRID_STORAGE));
+        if (!gridState || gridState.length !== TOTAL_WORDS) {
+            gridState = Array(TOTAL_WORDS).fill(null);
+        }
 
-        // 3. ADMIN RESET LOGIC (Triple Tap UI Hardening)
+        // 3. ADMIN RESET LOGIC (Triple Tap)
         let tapCount = 0;
         let tapTimer = null;
 
         function handleProgressTap() {
             tapCount++;
             clearTimeout(tapTimer);
-            
-            // If tapped 3 times within 1.5 seconds, reset.
             if (tapCount >= 3) {
                 if(confirm("ADMIN OVERRIDE: Reset all student progress?")) {
-                    localStorage.removeItem(STORAGE_KEY);
-                    localStorage.removeItem(CODE_KEY);
-                    window.location.replace(window.location.pathname); // clear URL params and reload
+                    localStorage.removeItem(KEYS_STORAGE);
+                    localStorage.removeItem(GRID_STORAGE);
+                    localStorage.removeItem(CODE_STORAGE);
+                    window.location.replace(window.location.pathname);
                 }
                 tapCount = 0;
             } else {
-                // Reset tap count after 1.5 seconds of inactivity
                 tapTimer = setTimeout(() => { tapCount = 0; }, 1500);
             }
         }
@@ -181,95 +221,158 @@
         // 4. CORE ENGINE
         function init() {
             processURL();
-            renderDashboard();
+            renderUI();
             checkVictory();
         }
 
-        // Process URL Parameter (?word=XXXX)
         function processURL() {
             const urlParams = new URLSearchParams(window.location.search);
-            const scannedKey = urlParams.get('word');
+            // Accept either ?wordID= or ?word= for robustness
+            const scannedKey = urlParams.get('wordID') || urlParams.get('word');
 
             if (scannedKey) {
                 const upperKey = scannedKey.toUpperCase();
+                const isValidKey = puzzleData.some(item => item.id === upperKey);
 
-                // Check if the scanned hash exists in our dictionary
-                if (secureDict[upperKey]) {
-                    if (!foundKeys.includes(upperKey)) {
-                        foundKeys.push(upperKey);
-                        localStorage.setItem(STORAGE_KEY, JSON.stringify(foundKeys));
+                if (isValidKey) {
+                    if (!unlockedKeys.includes(upperKey)) {
+                        unlockedKeys.push(upperKey);
+                        localStorage.setItem(KEYS_STORAGE, JSON.stringify(unlockedKeys));
                         
-                        // Decode Base64 for the success message
-                        const decodedWord = atob(secureDict[upperKey]);
-                        showToast(`Data Extracted: "${decodedWord}"`, 'success');
+                        const wordObj = puzzleData.find(item => item.id === upperKey);
+                        showToast(`Extracted: "${atob(wordObj.b64)}"`, 'success');
                     } else {
-                        showToast(`Duplicate Code: Word already secured.`, 'info');
+                        showToast(`Duplicate: Word already in bank.`, 'info');
                     }
                 } else {
-                    showToast('ERROR: Invalid or Corrupted QR Code.', 'error');
+                    showToast('ERROR: Invalid QR Code.', 'error');
                 }
 
-                // URL Obfuscation: Erase the parameter from the browser bar immediately
+                // Erase URL param
                 window.history.replaceState({}, document.title, window.location.pathname);
             }
         }
 
-        // Render UI Dashboard
-        function renderDashboard() {
-            const container = document.getElementById('quote-container');
-            container.innerHTML = ''; 
+        // 5. INTERACTION LOGIC
+        window.moveToGrid = function(key) {
+            // Find first empty slot
+            const emptyIndex = gridState.indexOf(null);
+            if (emptyIndex !== -1) {
+                gridState[emptyIndex] = key;
+                saveAndRender();
+            } else {
+                showToast("Grid is full! Remove a word first.", "error");
+            }
+        };
 
-            sequence.forEach(key => {
-                const isFound = foundKeys.includes(key);
-                const wordElement = document.createElement('div');
-                
-                if (isFound) {
-                    // Decode the Base64 string to display the actual word
-                    wordElement.className = 'bg-rugged-accent text-white font-black text-2xl md:text-3xl px-4 py-3 rugged-border-active uppercase tracking-wide';
-                    wordElement.innerText = atob(secureDict[key]);
-                } else {
-                    wordElement.className = 'bg-stone-800 text-stone-600 font-black text-2xl md:text-3xl px-4 py-3 rugged-border uppercase tracking-widest';
-                    wordElement.innerText = '____';
-                }
-                
-                container.appendChild(wordElement);
-            });
+        window.moveToBank = function(gridIndex) {
+            if (gridState[gridIndex] !== null) {
+                gridState[gridIndex] = null;
+                saveAndRender();
+            }
+        };
 
-            // Update UI Progress Math
-            const totalWords = sequence.length;
-            const foundCount = foundKeys.length;
-            const percentage = (foundCount / totalWords) * 100;
-
-            document.getElementById('progress-text').innerText = `${foundCount} / ${totalWords}`;
-            document.getElementById('progress-fill').style.width = `${percentage}%`;
+        function saveAndRender() {
+            localStorage.setItem(GRID_STORAGE, JSON.stringify(gridState));
+            renderUI();
+            checkVictory();
         }
 
-        // Victory & Gatekeeper Authorization
-        function checkVictory() {
-            if (foundKeys.length === sequence.length) {
-                document.getElementById('instructions').classList.add('hidden');
+        // 6. RENDER UI
+        function renderUI() {
+            // Update Counter
+            document.getElementById('progress-text').innerText = `${unlockedKeys.length} / ${TOTAL_WORDS}`;
+
+            const gridContainer = document.getElementById('assembly-grid');
+            const bankContainer = document.getElementById('word-bank');
+            const emptyState = document.getElementById('bank-empty-state');
+            
+            gridContainer.innerHTML = '';
+            bankContainer.innerHTML = '';
+
+            // Render Assembly Grid
+            gridState.forEach((key, index) => {
+                const slot = document.createElement('div');
                 
+                if (key === null) {
+                    // Empty Slot
+                    slot.className = 'h-10 min-w-[3rem] flex-grow md:flex-grow-0 md:w-20 rugged-border-dashed rounded flex items-center justify-center text-stone-600 text-xs';
+                    slot.innerText = index + 1;
+                } else {
+                    // Filled Slot
+                    const wordObj = puzzleData.find(item => item.id === key);
+                    slot.className = 'bg-rugged-accent text-white font-bold px-3 py-2 rugged-border-active cursor-pointer no-select tile-pop rounded text-sm md:text-base shadow-md';
+                    slot.innerText = atob(wordObj.b64);
+                    slot.onclick = () => moveToBank(index);
+                }
+                gridContainer.appendChild(slot);
+            });
+
+            // Render Word Bank
+            let wordsInBank = 0;
+            unlockedKeys.forEach(key => {
+                // If it's NOT in the grid, it belongs in the bank
+                if (!gridState.includes(key)) {
+                    wordsInBank++;
+                    const wordObj = puzzleData.find(item => item.id === key);
+                    const tile = document.createElement('div');
+                    tile.className = 'bg-stone-700 text-stone-100 font-bold px-3 py-2 rugged-border cursor-pointer no-select tile-pop rounded text-sm md:text-base hover:bg-stone-600 shadow-md';
+                    tile.innerText = atob(wordObj.b64);
+                    tile.onclick = () => moveToGrid(key);
+                    bankContainer.appendChild(tile);
+                }
+            });
+
+            // Toggle Empty State Message
+            if (unlockedKeys.length === 0 || wordsInBank === 0) {
+                emptyState.classList.remove('hidden');
+                if (unlockedKeys.length > 0) emptyState.innerText = "All unlocked words are currently on the grid.";
+            } else {
+                emptyState.classList.add('hidden');
+            }
+        }
+
+        // 7. VERIFICATION LOGIC
+        function checkVictory() {
+            // Check if grid is completely full first
+            if (gridState.includes(null)) return;
+
+            // Check if sequence matches exactly
+            let isCorrect = true;
+            for (let i = 0; i < TOTAL_WORDS; i++) {
+                if (gridState[i] !== correctSequence[i]) {
+                    isCorrect = false;
+                    break;
+                }
+            }
+
+            if (isCorrect) {
+                // Hide game, show ticket
+                document.getElementById('game-section').classList.add('hidden');
                 const ticketSection = document.getElementById('victory-ticket');
                 ticketSection.classList.remove('hidden');
 
-                // Generate or retrieve the Gatekeeper Authorization code
-                let authCode = localStorage.getItem(CODE_KEY);
+                // Generate or retrieve Auth Code
+                let authCode = localStorage.getItem(CODE_STORAGE);
                 if (!authCode) {
                     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
                     authCode = '';
                     for (let i = 0; i < 7; i++) {
                         authCode += chars.charAt(Math.floor(Math.random() * chars.length));
                     }
-                    localStorage.setItem(CODE_KEY, authCode);
+                    localStorage.setItem(CODE_STORAGE, authCode);
                 }
 
-                // Add spaces for visual flair on the ticket (e.g. X Y 9 2 - A B C)
-                const formattedCode = authCode.split('').join(' ');
+                // Format: ABC-1234
+                const formattedCode = authCode.substring(0,3) + '-' + authCode.substring(3);
                 document.getElementById('master-code').innerText = formattedCode;
+            } else {
+                // They filled it up, but it's wrong!
+                showToast('Sequence Incorrect. Keep trying!', 'error');
             }
         }
 
-        // Custom Toast Engine
+        // 8. CUSTOM TOAST ENGINE
         function showToast(message, type) {
             const container = document.getElementById('toast-container');
             container.classList.remove('hidden');
