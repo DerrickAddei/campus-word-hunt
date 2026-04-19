@@ -25,6 +25,11 @@
         }
     </script>
     <style>
+        /* RED TEAM FIX: Prevent mobile pull-to-refresh */
+        html, body {
+            overscroll-behavior-y: none;
+        }
+
         /* Rugged borders */
         .rugged-border {
             border: 2px solid #44403c;
@@ -73,10 +78,12 @@
             animation: fadeIn 0.2s ease-out forwards;
         }
         
-        /* Prevent selection during interactions */
+        /* Prevent selection during interactions & optimize touch */
         .no-select {
             -webkit-user-select: none;
             user-select: none;
+            /* RED TEAM FIX: Disables double-tap zoom, makes taps instant */
+            touch-action: manipulation; 
         }
 
         /* Tile pop animation */
@@ -102,8 +109,8 @@
             
             <input type="text" id="challenge-input" class="w-full bg-stone-900 border-2 border-stone-600 focus:border-rugged-accent outline-none text-white p-3 mb-4 font-bold text-center uppercase tracking-wide rounded-sm" placeholder="TYPE CLUE HERE...">
             
-            <button id="challenge-submit" class="w-full bg-rugged-accent text-white font-black uppercase tracking-widest py-3 rugged-border hover:bg-amber-500 transition-colors active:scale-95">Verify & Unlock</button>
-            <button onclick="closeChallengeModal()" class="mt-4 text-stone-500 text-xs uppercase tracking-widest hover:text-stone-300">Cancel</button>
+            <button id="challenge-submit" class="w-full bg-rugged-accent text-white font-black uppercase tracking-widest py-3 rugged-border hover:bg-amber-500 transition-colors active:scale-95 no-select">Verify & Unlock</button>
+            <button onclick="closeChallengeModal()" class="mt-4 text-stone-500 text-xs uppercase tracking-widest hover:text-stone-300 no-select">Cancel</button>
         </div>
     </div>
 
@@ -209,9 +216,9 @@
         const TOTAL_WORDS = 14;
 
         // 2. STATE MANAGEMENT
-        const KEYS_STORAGE = 'fsu_puzzle_keys_v3';
-        const GRID_STORAGE = 'fsu_puzzle_grid_v3';
-        const CODE_STORAGE = 'fsu_puzzle_auth_v3';
+        const KEYS_STORAGE = 'fsu_puzzle_keys_v4';
+        const GRID_STORAGE = 'fsu_puzzle_grid_v4';
+        const CODE_STORAGE = 'fsu_puzzle_auth_v4';
         
         let unlockedKeys = JSON.parse(localStorage.getItem(KEYS_STORAGE)) || [];
         
@@ -283,10 +290,10 @@
             }
         }
 
-        // String cleaner for case-insensitive, punctuation-free comparison
+        // RED TEAM FIX: Robust string cleaner for case-insensitive, punctuation-free comparison
         function cleanString(str) {
             if (!str) return "";
-            // Convert to lowercase, remove everything except letters, numbers, and spaces, then trim extra spaces
+            // Lowercase, remove all non-alphanumeric chars (except spaces), collapse multiple spaces, and trim edges
             return str.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
         }
 
@@ -363,7 +370,7 @@
                 const slot = document.createElement('div');
                 
                 if (key === null) {
-                    slot.className = 'h-10 min-w-[3rem] flex-grow md:flex-grow-0 md:w-[5.5rem] rugged-border-dashed rounded flex items-center justify-center text-stone-600 text-xs font-bold';
+                    slot.className = 'h-10 min-w-[3rem] flex-grow md:flex-grow-0 md:w-[5.5rem] rugged-border-dashed rounded flex items-center justify-center text-stone-600 text-xs font-bold no-select';
                     slot.innerText = index + 1;
                 } else {
                     const textContent = wordMap[key];
@@ -401,7 +408,7 @@
             }
         }
 
-        // 7. VERIFICATION LOGIC (Fixes the Duplicate "You" Bug)
+        // 7. VERIFICATION LOGIC (RED TEAM VERIFIED: Solves Duplicate Bug)
         function checkVictory() {
             // Check if grid is full
             if (gridState.includes(null)) return;
@@ -409,7 +416,8 @@
             // Map the current grid state (IDs) to their actual text values
             const currentTextSequence = gridState.map(id => wordMap[id]);
 
-            // Compare the text arrays exactly
+            // Compare the text arrays exactly. Because "you" matches "you" perfectly 
+            // regardless of the underlying ID (T5Y6 or D3F4), the user can't place it "wrong".
             let isCorrect = true;
             for (let i = 0; i < TOTAL_WORDS; i++) {
                 if (currentTextSequence[i] !== correctTextSequence[i]) {
