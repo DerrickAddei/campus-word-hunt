@@ -57,13 +57,20 @@
         .ticket-cutout::before { left: -15px; }
         .ticket-cutout::after { right: -15px; }
 
-        /* Toast animation */
+        /* Toast & Modal animation */
         @keyframes slideIn {
             from { transform: translateY(-100%); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
         }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
         .toast-animate {
             animation: slideIn 0.3s ease-out forwards;
+        }
+        .modal-animate {
+            animation: fadeIn 0.2s ease-out forwards;
         }
         
         /* Prevent selection during interactions */
@@ -86,6 +93,20 @@
     <!-- Toast Notification System -->
     <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none hidden"></div>
 
+    <!-- Challenge Modal (Hidden by default) -->
+    <div id="challenge-modal" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50 hidden px-4 modal-animate">
+        <div class="bg-rugged-panel rugged-border p-6 max-w-sm w-full text-center shadow-2xl">
+            <svg class="w-12 h-12 mx-auto text-rugged-accent mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            <h2 class="text-rugged-accent font-black uppercase tracking-widest text-xl mb-2">Location Secured</h2>
+            <p class="text-stone-300 mb-6 text-sm font-medium">Enter the missing word found at this location to unlock the clue.</p>
+            
+            <input type="text" id="challenge-input" class="w-full bg-stone-900 border-2 border-stone-600 focus:border-rugged-accent outline-none text-white p-3 mb-4 font-bold text-center uppercase tracking-wide rounded-sm" placeholder="TYPE CLUE HERE...">
+            
+            <button id="challenge-submit" class="w-full bg-rugged-accent text-white font-black uppercase tracking-widest py-3 rugged-border hover:bg-amber-500 transition-colors active:scale-95">Verify & Unlock</button>
+            <button onclick="closeChallengeModal()" class="mt-4 text-stone-500 text-xs uppercase tracking-widest hover:text-stone-300">Cancel</button>
+        </div>
+    </div>
+
     <!-- Main Header -->
     <header class="bg-rugged-panel border-b-4 border-stone-700 p-4 shadow-md text-center shrink-0">
         <h1 class="text-2xl md:text-3xl font-black tracking-widest uppercase text-rugged-accent">Word Hunt</h1>
@@ -99,7 +120,7 @@
         <div id="game-section" class="w-full flex flex-col gap-6">
             
             <!-- Progress Counter (TRIPLE TAP FOR ADMIN RESET) -->
-            <div class="w-full bg-stone-800 p-4 rounded border-l-4 border-rugged-accent no-select cursor-pointer flex justify-between items-center" onclick="handleProgressTap()">
+            <div class="w-full bg-stone-800 p-4 rounded border-l-4 border-rugged-accent no-select cursor-pointer flex justify-between items-center shadow-md" onclick="handleProgressTap()">
                 <span class="text-stone-300 font-bold uppercase tracking-widest text-sm">Words Collected:</span>
                 <span id="progress-text" class="text-2xl font-black text-rugged-accent">0 / 14</span>
             </div>
@@ -108,7 +129,7 @@
             <div class="w-full bg-rugged-panel p-4 md:p-6 rugged-border">
                 <div class="flex justify-between items-end mb-4">
                     <h2 class="text-stone-400 uppercase tracking-widest text-xs font-bold">Assembly Grid</h2>
-                    <span class="text-xs text-stone-500 italic">Tap to remove</span>
+                    <span class="text-xs text-stone-500 italic font-medium">Tap tile to remove</span>
                 </div>
                 <!-- 14 Slots -->
                 <div id="assembly-grid" class="flex flex-wrap gap-2 md:gap-3">
@@ -120,13 +141,13 @@
             <div class="w-full bg-stone-800 p-4 md:p-6 rugged-border">
                 <div class="flex justify-between items-end mb-4">
                     <h2 class="text-stone-400 uppercase tracking-widest text-xs font-bold">Word Bank</h2>
-                    <span class="text-xs text-stone-500 italic">Tap to place</span>
+                    <span class="text-xs text-stone-500 italic font-medium">Tap tile to place</span>
                 </div>
                 <!-- Unlocked Words -->
                 <div id="word-bank" class="flex flex-wrap gap-2 md:gap-3 min-h-[100px] items-start content-start">
                     <!-- Bank items injected via JS -->
                 </div>
-                <div id="bank-empty-state" class="text-center text-stone-500 text-sm italic w-full py-4">
+                <div id="bank-empty-state" class="text-center text-stone-500 text-sm italic w-full py-4 font-medium">
                     Scan QR codes to fill your bank.
                 </div>
             </div>
@@ -160,43 +181,46 @@
 
     <!-- Application Logic -->
     <script>
-        // 1. DATA DICTIONARY & CORRECT SEQUENCE
-        // Keys: Unique 4-character hashes used in QR URLs (?wordID=XJ92)
-        // Values: Base64 encoded target words
-        const puzzleData = [
-            { id: "Q1W2", b64: "VGhlIGRldmls" },           // The devil
-            { id: "E3R4", b64: "d2lsbCBvZmZlcg==" },       // will offer
-            { id: "T5Y6", b64: "eW91" },                   // you
-            { id: "U7I8", b64: "dGhlIHdvcmxk" },           // the world
-            { id: "O9P0", b64: "YW5kIGl0" },               // and it
-            { id: "A1S2", b64: "d2lsbCBjb3N0" },           // will cost
-            { id: "D3F4", b64: "eW91" },                   // you
-            { id: "G5H6", b64: "eW91ciBzb3VsLg==" },       // your soul.
-            { id: "J7K8", b64: "SmVzdXM=" },               // Jesus
-            { id: "L9Z0", b64: "d2lsbCBnaXZl" },           // will give
-            { id: "X1C2", b64: "eW91IGV2ZXJ5dGhpbmcs" },   // you everything,
-            { id: "V3B4", b64: "YnV0IGl0IGNvc3Q=" },       // but it cost
-            { id: "N5M6", b64: "SGlz" },                   // His
-            { id: "Q8W9", b64: "bGlmZS4=" }                // life.
+        // 1. DATA DICTIONARY
+        const wordMap = { 
+            'Q1W2': 'The devil', 
+            'E3R4': 'will offer', 
+            'T5Y6': 'you', 
+            'U7I8': 'the world', 
+            'O9P0': 'and it', 
+            'A1S2': 'will cost', 
+            'D3F4': 'you', 
+            'G5H6': 'your soul.', 
+            'J7K8': 'Jesus', 
+            'L9Z0': 'will give', 
+            'X1C2': 'you everything,', 
+            'V3B4': 'but it cost', 
+            'N5M6': 'His', 
+            'Q8W9': 'life.' 
+        };
+
+        // The EXACT text sequence required to win
+        const correctTextSequence = [
+            'The devil', 'will offer', 'you', 'the world', 'and it', 'will cost', 
+            'you', 'your soul.', 'Jesus', 'will give', 'you everything,', 
+            'but it cost', 'His', 'life.'
         ];
 
-        // The exact ordered sequence required for victory
-        const correctSequence = puzzleData.map(item => item.id);
         const TOTAL_WORDS = 14;
 
-        // 2. STATE MANAGEMENT (Persistence via LocalStorage)
-        const KEYS_STORAGE = 'fsu_puzzle_unlocked_v2';
-        const GRID_STORAGE = 'fsu_puzzle_grid_v2';
-        const CODE_STORAGE = 'fsu_puzzle_auth_v2';
+        // 2. STATE MANAGEMENT
+        const KEYS_STORAGE = 'fsu_puzzle_keys_v3';
+        const GRID_STORAGE = 'fsu_puzzle_grid_v3';
+        const CODE_STORAGE = 'fsu_puzzle_auth_v3';
         
-        // unlockedKeys: Array of strings (e.g. ['Q1W2', 'E3R4'])
         let unlockedKeys = JSON.parse(localStorage.getItem(KEYS_STORAGE)) || [];
         
-        // gridState: Array of length 14, contains either an ID string or null
         let gridState = JSON.parse(localStorage.getItem(GRID_STORAGE));
         if (!gridState || gridState.length !== TOTAL_WORDS) {
             gridState = Array(TOTAL_WORDS).fill(null);
         }
+
+        let pendingChallengeID = null;
 
         // 3. ADMIN RESET LOGIC (Triple Tap)
         let tapCount = 0;
@@ -223,45 +247,90 @@
             processURL();
             renderUI();
             checkVictory();
+
+            // Set up Challenge Modal Enter Key Listener
+            document.getElementById('challenge-input').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    verifyChallenge();
+                }
+            });
+
+            document.getElementById('challenge-submit').addEventListener('click', verifyChallenge);
         }
 
         function processURL() {
             const urlParams = new URLSearchParams(window.location.search);
-            // Accept either ?wordID= or ?word= for robustness
             const scannedKey = urlParams.get('wordID') || urlParams.get('word');
 
             if (scannedKey) {
                 const upperKey = scannedKey.toUpperCase();
-                const isValidKey = puzzleData.some(item => item.id === upperKey);
+                
+                // Immediately remove the parameter from URL to prevent refresh triggers
+                window.history.replaceState({}, document.title, window.location.pathname);
 
-                if (isValidKey) {
+                if (wordMap[upperKey]) {
                     if (!unlockedKeys.includes(upperKey)) {
-                        unlockedKeys.push(upperKey);
-                        localStorage.setItem(KEYS_STORAGE, JSON.stringify(unlockedKeys));
-                        
-                        const wordObj = puzzleData.find(item => item.id === upperKey);
-                        showToast(`Extracted: "${atob(wordObj.b64)}"`, 'success');
+                        // Valid & New: Trigger the Challenge Modal
+                        pendingChallengeID = upperKey;
+                        document.getElementById('challenge-modal').classList.remove('hidden');
+                        document.getElementById('challenge-input').focus();
                     } else {
-                        showToast(`Duplicate: Word already in bank.`, 'info');
+                        showToast(`Word already securely stored in your bank.`, 'info');
                     }
                 } else {
-                    showToast('ERROR: Invalid QR Code.', 'error');
+                    showToast('ERROR: Invalid or Corrupted QR Code.', 'error');
                 }
-
-                // Erase URL param
-                window.history.replaceState({}, document.title, window.location.pathname);
             }
+        }
+
+        // String cleaner for case-insensitive, punctuation-free comparison
+        function cleanString(str) {
+            if (!str) return "";
+            // Convert to lowercase, remove everything except letters, numbers, and spaces, then trim extra spaces
+            return str.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
+        }
+
+        function verifyChallenge() {
+            const inputEl = document.getElementById('challenge-input');
+            const userInput = inputEl.value;
+            const targetWord = wordMap[pendingChallengeID];
+
+            if (!userInput) return;
+
+            const cleanedInput = cleanString(userInput);
+            const cleanedTarget = cleanString(targetWord);
+
+            if (cleanedInput === cleanedTarget) {
+                // Correct! Unlock the word
+                unlockedKeys.push(pendingChallengeID);
+                localStorage.setItem(KEYS_STORAGE, JSON.stringify(unlockedKeys));
+                
+                closeChallengeModal();
+                showToast(`Access Granted: "${targetWord}" extracted.`, 'success');
+                renderUI();
+                checkVictory();
+            } else {
+                // Incorrect
+                showToast('Authentication Failed. Incorrect word.', 'error');
+                inputEl.value = '';
+                inputEl.focus();
+            }
+        }
+
+        function closeChallengeModal() {
+            document.getElementById('challenge-modal').classList.add('hidden');
+            document.getElementById('challenge-input').value = '';
+            pendingChallengeID = null;
         }
 
         // 5. INTERACTION LOGIC
         window.moveToGrid = function(key) {
-            // Find first empty slot
             const emptyIndex = gridState.indexOf(null);
             if (emptyIndex !== -1) {
                 gridState[emptyIndex] = key;
                 saveAndRender();
             } else {
-                showToast("Grid is full! Remove a word first.", "error");
+                showToast("Grid is full! Tap a word to remove it.", "error");
             }
         };
 
@@ -280,7 +349,6 @@
 
         // 6. RENDER UI
         function renderUI() {
-            // Update Counter
             document.getElementById('progress-text').innerText = `${unlockedKeys.length} / ${TOTAL_WORDS}`;
 
             const gridContainer = document.getElementById('assembly-grid');
@@ -295,14 +363,12 @@
                 const slot = document.createElement('div');
                 
                 if (key === null) {
-                    // Empty Slot
-                    slot.className = 'h-10 min-w-[3rem] flex-grow md:flex-grow-0 md:w-20 rugged-border-dashed rounded flex items-center justify-center text-stone-600 text-xs';
+                    slot.className = 'h-10 min-w-[3rem] flex-grow md:flex-grow-0 md:w-[5.5rem] rugged-border-dashed rounded flex items-center justify-center text-stone-600 text-xs font-bold';
                     slot.innerText = index + 1;
                 } else {
-                    // Filled Slot
-                    const wordObj = puzzleData.find(item => item.id === key);
-                    slot.className = 'bg-rugged-accent text-white font-bold px-3 py-2 rugged-border-active cursor-pointer no-select tile-pop rounded text-sm md:text-base shadow-md';
-                    slot.innerText = atob(wordObj.b64);
+                    const textContent = wordMap[key];
+                    slot.className = 'bg-rugged-accent text-white font-bold px-3 py-2 rugged-border-active cursor-pointer no-select tile-pop rounded text-sm md:text-base shadow-md flex-grow md:flex-grow-0 text-center';
+                    slot.innerText = textContent;
                     slot.onclick = () => moveToBank(index);
                 }
                 gridContainer.appendChild(slot);
@@ -311,13 +377,12 @@
             // Render Word Bank
             let wordsInBank = 0;
             unlockedKeys.forEach(key => {
-                // If it's NOT in the grid, it belongs in the bank
                 if (!gridState.includes(key)) {
                     wordsInBank++;
-                    const wordObj = puzzleData.find(item => item.id === key);
+                    const textContent = wordMap[key];
                     const tile = document.createElement('div');
                     tile.className = 'bg-stone-700 text-stone-100 font-bold px-3 py-2 rugged-border cursor-pointer no-select tile-pop rounded text-sm md:text-base hover:bg-stone-600 shadow-md';
-                    tile.innerText = atob(wordObj.b64);
+                    tile.innerText = textContent;
                     tile.onclick = () => moveToGrid(key);
                     bankContainer.appendChild(tile);
                 }
@@ -326,21 +391,28 @@
             // Toggle Empty State Message
             if (unlockedKeys.length === 0 || wordsInBank === 0) {
                 emptyState.classList.remove('hidden');
-                if (unlockedKeys.length > 0) emptyState.innerText = "All unlocked words are currently on the grid.";
+                if (unlockedKeys.length > 0) {
+                    emptyState.innerText = "All unlocked words are currently on the grid.";
+                } else {
+                    emptyState.innerText = "Scan QR codes to fill your bank.";
+                }
             } else {
                 emptyState.classList.add('hidden');
             }
         }
 
-        // 7. VERIFICATION LOGIC
+        // 7. VERIFICATION LOGIC (Fixes the Duplicate "You" Bug)
         function checkVictory() {
-            // Check if grid is completely full first
+            // Check if grid is full
             if (gridState.includes(null)) return;
 
-            // Check if sequence matches exactly
+            // Map the current grid state (IDs) to their actual text values
+            const currentTextSequence = gridState.map(id => wordMap[id]);
+
+            // Compare the text arrays exactly
             let isCorrect = true;
             for (let i = 0; i < TOTAL_WORDS; i++) {
-                if (gridState[i] !== correctSequence[i]) {
+                if (currentTextSequence[i] !== correctTextSequence[i]) {
                     isCorrect = false;
                     break;
                 }
@@ -367,8 +439,8 @@
                 const formattedCode = authCode.substring(0,3) + '-' + authCode.substring(3);
                 document.getElementById('master-code').innerText = formattedCode;
             } else {
-                // They filled it up, but it's wrong!
-                showToast('Sequence Incorrect. Keep trying!', 'error');
+                // Filled but incorrect
+                showToast('Sequence Incorrect. Check your sentence logic!', 'error');
             }
         }
 
