@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Campus Word Hunt</title>
-    <!-- Tailwind CSS for styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -100,10 +99,8 @@
 </head>
 <body class="bg-app-bg text-gray-200 font-sans antialiased min-h-screen flex flex-col selection:bg-app-accent selection:text-white pb-6">
 
-    <!-- Toast Notification System -->
     <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none hidden"></div>
 
-    <!-- Challenge Modal (Hidden by default) -->
     <div id="challenge-modal" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50 hidden px-4 modal-animate">
         <div class="bg-app-surface border border-app-border p-6 max-w-sm w-full text-center shadow-2xl rounded-xl">
             <svg class="w-12 h-12 mx-auto text-app-accent mb-4 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
@@ -117,45 +114,35 @@
         </div>
     </div>
 
-    <!-- Main Header -->
     <header class="bg-app-surface border-b border-app-border p-5 shadow-md text-center shrink-0">
         <h1 class="text-2xl md:text-3xl font-black tracking-widest uppercase text-white drop-shadow-md">Word Hunt</h1>
         <p class="text-app-accent text-xs md:text-sm mt-1 uppercase tracking-widest font-semibold">Frostburg Campus</p>
     </header>
 
-    <!-- Main Content Area -->
     <main class="flex-grow p-4 flex flex-col items-center max-w-3xl mx-auto w-full gap-6 mt-2">
         
-        <!-- Game Container (Hidden on Victory) -->
         <div id="game-section" class="w-full flex flex-col gap-6">
             
-            <!-- Progress Counter -->
             <div class="w-full bg-app-surface p-4 rounded-xl border border-app-border flex justify-between items-center shadow-sm">
                 <span class="text-gray-400 font-medium uppercase tracking-widest text-xs">Words Collected</span>
                 <span id="progress-text" class="text-xl font-black text-white">0 / 14</span>
             </div>
 
-            <!-- The Assembly Grid -->
             <div class="w-full">
                 <div class="flex justify-between items-end mb-3 px-1">
                     <h2 class="text-gray-400 uppercase tracking-widest text-xs font-bold">Assembly Grid</h2>
                     <span class="text-xs text-gray-500 font-medium">Tap to remove</span>
                 </div>
-                <!-- 14 Slots -->
                 <div id="assembly-grid" class="flex flex-wrap gap-2 md:gap-3 bg-app-surface p-4 rounded-xl border border-app-border shadow-sm">
-                    <!-- Slots injected via JS -->
-                </div>
+                    </div>
             </div>
 
-            <!-- The Word Bank -->
             <div class="w-full">
                 <div class="flex justify-between items-end mb-3 px-1">
                     <h2 class="text-gray-400 uppercase tracking-widest text-xs font-bold">Word Bank</h2>
                     <span class="text-xs text-gray-500 font-medium">Tap to place</span>
                 </div>
-                <!-- Unlocked Words -->
                 <div id="word-bank" class="flex flex-wrap gap-2 md:gap-3 min-h-[120px] items-start content-start bg-app-surface p-4 rounded-xl border border-app-border shadow-sm relative">
-                    <!-- Bank items injected via JS -->
                     <div id="bank-empty-state" class="absolute inset-0 flex items-center justify-center text-center text-gray-500 text-sm font-medium w-full h-full pointer-events-none">
                         Scan QR codes to fill your bank.
                     </div>
@@ -163,7 +150,6 @@
             </div>
         </div>
 
-        <!-- THE GATEKEEPER TICKET (Hidden until Victory) -->
         <div id="victory-ticket" class="hidden w-full mt-4 transform rotate-1 transition-transform duration-500 hover:rotate-0">
             <div class="bg-app-accent p-1.5 rounded-2xl shadow-[0_10px_30px_rgba(59,130,246,0.3)] ticket-cutout">
                 <div class="bg-[#0f172a] border-2 border-dashed border-app-accent p-6 md:p-8 rounded-xl text-center relative overflow-hidden">
@@ -175,15 +161,13 @@
                     </p>
 
                     <div class="bg-app-accent text-white font-mono text-3xl md:text-5xl py-5 px-2 font-black tracking-widest rounded-lg shadow-inner" id="master-code">
-                        <!-- Code injected here -->
-                    </div>
+                        </div>
                     
                     <p class="text-blue-300 mt-6 text-xs font-bold uppercase tracking-widest">Screenshot & Show to Treasurer</p>
                 </div>
             </div>
         </div>
 
-        <!-- Admin Reset Button (Hidden subtly at the bottom) -->
         <div class="mt-8 text-center w-full">
             <button onclick="adminReset()" class="text-[#333333] hover:text-gray-500 transition-colors text-[10px] uppercase tracking-widest font-bold no-select outline-none">
                 Admin Reset
@@ -192,7 +176,6 @@
 
     </main>
 
-    <!-- Application Logic -->
     <script>
         // 1. DATA DICTIONARY
         const wordMap = { 
@@ -221,9 +204,9 @@
         const TOTAL_WORDS = 14;
 
         // 2. STATE MANAGEMENT
-        const KEYS_STORAGE = 'fsu_puzzle_keys_dark';
-        const GRID_STORAGE = 'fsu_puzzle_grid_dark';
-        const CODE_STORAGE = 'fsu_puzzle_auth_dark';
+        const KEYS_STORAGE = 'fsu_puzzle_keys_v5';
+        const GRID_STORAGE = 'fsu_puzzle_grid_v5';
+        const CODE_STORAGE = 'fsu_puzzle_auth_v5';
         
         let unlockedKeys = JSON.parse(localStorage.getItem(KEYS_STORAGE)) || [];
         
@@ -275,7 +258,12 @@
                         // Valid & New: Trigger Challenge Modal
                         pendingChallengeID = upperKey;
                         document.getElementById('challenge-modal').classList.remove('hidden');
-                        document.getElementById('challenge-input').focus();
+                        
+                        // RED TEAM FIX: Delay focus to ensure mobile keyboard triggers after modal paints
+                        setTimeout(() => {
+                            document.getElementById('challenge-input').focus();
+                        }, 100);
+                        
                     } else {
                         showToast(`Word already safely stored in your bank.`, 'info');
                     }
@@ -373,7 +361,7 @@
                 } else {
                     const textContent = wordMap[key];
                     // Sleek glowing tile
-                    slot.className = 'h-11 flex-grow md:flex-grow-0 flex items-center justify-center bg-[#1a1a1a] border text-white font-medium px-4 rounded-lg cursor-pointer no-select tile-interactive pop-in text-sm shadow-md grid-glow text-center';
+                    slot.className = 'h-11 flex-grow md:flex-grow-0 flex items-center justify-center bg-[#1a1a1a] border border-app-border text-white font-medium px-4 rounded-lg cursor-pointer no-select tile-interactive pop-in text-sm shadow-md grid-glow text-center';
                     slot.innerText = textContent;
                     slot.onclick = () => moveToBank(index);
                 }
