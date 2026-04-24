@@ -11,10 +11,11 @@
             theme: {
                 extend: {
                     colors: {
-                        'rugged-bg': '#1c1917', // stone-900
-                        'rugged-panel': '#292524', // stone-800
-                        'rugged-accent': '#d97706', // amber-600
-                        'rugged-text': '#f5f5f4', // stone-100
+                        'app-bg': '#121212',
+                        'app-surface': '#1e1e1e',
+                        'app-border': '#333333',
+                        'app-accent': '#3b82f6', // Sleek blue accent for dark mode
+                        'app-glow': 'rgba(59, 130, 246, 0.4)',
                     },
                     fontFamily: {
                         'sans': ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
@@ -28,41 +29,41 @@
         /* RED TEAM FIX: Prevent mobile pull-to-refresh */
         html, body {
             overscroll-behavior-y: none;
+            background-color: #121212;
         }
 
-        /* Rugged borders */
-        .rugged-border {
-            border: 2px solid #44403c;
-            box-shadow: 2px 2px 0px 0px rgba(68, 64, 60, 1);
+        /* Prevent selection during interactions & optimize touch */
+        .no-select {
+            -webkit-user-select: none;
+            user-select: none;
+            touch-action: manipulation; /* Disables double-tap zoom, makes taps instant */
         }
-        .rugged-border-active {
-            border: 2px solid #d97706;
-            box-shadow: 2px 2px 0px 0px rgba(217, 119, 6, 1);
-        }
-        .rugged-border-dashed {
-            border: 2px dashed #57534e;
-            background-color: rgba(28, 25, 23, 0.5);
-        }
-        
-        /* Digital Ticket specific styles */
-        .ticket-cutout {
-            position: relative;
-        }
-        .ticket-cutout::before, .ticket-cutout::after {
-            content: '';
-            position: absolute;
-            top: 50%;
-            width: 30px;
-            height: 30px;
-            background-color: #1c1917;
-            border-radius: 50%;
-            transform: translateY(-50%);
-            z-index: 10;
-        }
-        .ticket-cutout::before { left: -15px; }
-        .ticket-cutout::after { right: -15px; }
 
-        /* Toast & Modal animation */
+        /* Smooth Pop-in Animation for Feedback Loop */
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.05); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .pop-in {
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        /* Tile Tap Animation */
+        .tile-interactive {
+            transition: transform 0.1s ease-in-out, background-color 0.2s;
+        }
+        .tile-interactive:active {
+            transform: scale(0.95);
+        }
+
+        /* Sleek Grid Glow Effect */
+        .grid-glow {
+            box-shadow: 0 0 12px rgba(59, 130, 246, 0.3);
+            border-color: rgba(59, 130, 246, 0.5);
+        }
+
+        /* Toast & Modal animations */
         @keyframes slideIn {
             from { transform: translateY(-100%); opacity: 0; }
             to { transform: translateY(0); opacity: 1; }
@@ -77,111 +78,116 @@
         .modal-animate {
             animation: fadeIn 0.2s ease-out forwards;
         }
-        
-        /* Prevent selection during interactions & optimize touch */
-        .no-select {
-            -webkit-user-select: none;
-            user-select: none;
-            /* RED TEAM FIX: Disables double-tap zoom, makes taps instant */
-            touch-action: manipulation; 
-        }
 
-        /* Tile pop animation */
-        .tile-pop {
-            transition: transform 0.1s ease-in-out;
+        /* Ticket Styles */
+        .ticket-cutout {
+            position: relative;
         }
-        .tile-pop:active {
-            transform: scale(0.95);
+        .ticket-cutout::before, .ticket-cutout::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 30px;
+            height: 30px;
+            background-color: #121212;
+            border-radius: 50%;
+            transform: translateY(-50%);
+            z-index: 10;
         }
+        .ticket-cutout::before { left: -15px; }
+        .ticket-cutout::after { right: -15px; }
     </style>
 </head>
-<body class="bg-rugged-bg text-rugged-text font-sans antialiased min-h-screen flex flex-col selection:bg-rugged-accent selection:text-white pb-10">
+<body class="bg-app-bg text-gray-200 font-sans antialiased min-h-screen flex flex-col selection:bg-app-accent selection:text-white pb-6">
 
     <!-- Toast Notification System -->
     <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none hidden"></div>
 
     <!-- Challenge Modal (Hidden by default) -->
     <div id="challenge-modal" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50 hidden px-4 modal-animate">
-        <div class="bg-rugged-panel rugged-border p-6 max-w-sm w-full text-center shadow-2xl">
-            <svg class="w-12 h-12 mx-auto text-rugged-accent mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
-            <h2 class="text-rugged-accent font-black uppercase tracking-widest text-xl mb-2">Location Secured</h2>
-            <p class="text-stone-300 mb-6 text-sm font-medium">Enter the missing word found at this location to unlock the clue.</p>
+        <div class="bg-app-surface border border-app-border p-6 max-w-sm w-full text-center shadow-2xl rounded-xl">
+            <svg class="w-12 h-12 mx-auto text-app-accent mb-4 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+            <h2 class="text-white font-black uppercase tracking-widest text-xl mb-2">Location Secured</h2>
+            <p class="text-gray-400 mb-6 text-sm font-medium">Enter the missing word found at this location to unlock the clue.</p>
             
-            <input type="text" id="challenge-input" class="w-full bg-stone-900 border-2 border-stone-600 focus:border-rugged-accent outline-none text-white p-3 mb-4 font-bold text-center uppercase tracking-wide rounded-sm" placeholder="TYPE CLUE HERE...">
+            <input type="text" id="challenge-input" class="w-full bg-[#121212] border-2 border-app-border focus:border-app-accent outline-none text-white p-3 mb-4 font-bold text-center uppercase tracking-wide rounded-lg transition-colors" placeholder="TYPE CLUE HERE...">
             
-            <button id="challenge-submit" class="w-full bg-rugged-accent text-white font-black uppercase tracking-widest py-3 rugged-border hover:bg-amber-500 transition-colors active:scale-95 no-select">Verify & Unlock</button>
-            <button onclick="closeChallengeModal()" class="mt-4 text-stone-500 text-xs uppercase tracking-widest hover:text-stone-300 no-select">Cancel</button>
+            <button id="challenge-submit" class="w-full bg-app-accent text-white font-bold uppercase tracking-widest py-3 rounded-lg hover:bg-blue-600 transition-colors active:scale-95 no-select shadow-[0_0_15px_rgba(59,130,246,0.4)]">Verify & Unlock</button>
+            <button onclick="closeChallengeModal()" class="mt-4 text-gray-500 text-xs uppercase tracking-widest hover:text-gray-300 no-select transition-colors">Cancel</button>
         </div>
     </div>
 
     <!-- Main Header -->
-    <header class="bg-rugged-panel border-b-4 border-stone-700 p-4 shadow-md text-center shrink-0">
-        <h1 class="text-2xl md:text-3xl font-black tracking-widest uppercase text-rugged-accent">Word Hunt</h1>
-        <p class="text-stone-400 text-xs md:text-sm mt-1 uppercase tracking-wider font-semibold">Frostburg Campus Edition</p>
+    <header class="bg-app-surface border-b border-app-border p-5 shadow-md text-center shrink-0">
+        <h1 class="text-2xl md:text-3xl font-black tracking-widest uppercase text-white drop-shadow-md">Word Hunt</h1>
+        <p class="text-app-accent text-xs md:text-sm mt-1 uppercase tracking-widest font-semibold">Frostburg Campus</p>
     </header>
 
     <!-- Main Content Area -->
-    <main class="flex-grow p-4 flex flex-col items-center max-w-3xl mx-auto w-full gap-6">
+    <main class="flex-grow p-4 flex flex-col items-center max-w-3xl mx-auto w-full gap-6 mt-2">
         
         <!-- Game Container (Hidden on Victory) -->
         <div id="game-section" class="w-full flex flex-col gap-6">
             
-            <!-- Progress Counter (TRIPLE TAP FOR ADMIN RESET) -->
-            <div class="w-full bg-stone-800 p-4 rounded border-l-4 border-rugged-accent no-select cursor-pointer flex justify-between items-center shadow-md" onclick="handleProgressTap()">
-                <span class="text-stone-300 font-bold uppercase tracking-widest text-sm">Words Collected:</span>
-                <span id="progress-text" class="text-2xl font-black text-rugged-accent">0 / 14</span>
+            <!-- Progress Counter -->
+            <div class="w-full bg-app-surface p-4 rounded-xl border border-app-border flex justify-between items-center shadow-sm">
+                <span class="text-gray-400 font-medium uppercase tracking-widest text-xs">Words Collected</span>
+                <span id="progress-text" class="text-xl font-black text-white">0 / 14</span>
             </div>
 
             <!-- The Assembly Grid -->
-            <div class="w-full bg-rugged-panel p-4 md:p-6 rugged-border">
-                <div class="flex justify-between items-end mb-4">
-                    <h2 class="text-stone-400 uppercase tracking-widest text-xs font-bold">Assembly Grid</h2>
-                    <span class="text-xs text-stone-500 italic font-medium">Tap tile to remove</span>
+            <div class="w-full">
+                <div class="flex justify-between items-end mb-3 px-1">
+                    <h2 class="text-gray-400 uppercase tracking-widest text-xs font-bold">Assembly Grid</h2>
+                    <span class="text-xs text-gray-500 font-medium">Tap to remove</span>
                 </div>
                 <!-- 14 Slots -->
-                <div id="assembly-grid" class="flex flex-wrap gap-2 md:gap-3">
+                <div id="assembly-grid" class="flex flex-wrap gap-2 md:gap-3 bg-app-surface p-4 rounded-xl border border-app-border shadow-sm">
                     <!-- Slots injected via JS -->
                 </div>
             </div>
 
             <!-- The Word Bank -->
-            <div class="w-full bg-stone-800 p-4 md:p-6 rugged-border">
-                <div class="flex justify-between items-end mb-4">
-                    <h2 class="text-stone-400 uppercase tracking-widest text-xs font-bold">Word Bank</h2>
-                    <span class="text-xs text-stone-500 italic font-medium">Tap tile to place</span>
+            <div class="w-full">
+                <div class="flex justify-between items-end mb-3 px-1">
+                    <h2 class="text-gray-400 uppercase tracking-widest text-xs font-bold">Word Bank</h2>
+                    <span class="text-xs text-gray-500 font-medium">Tap to place</span>
                 </div>
                 <!-- Unlocked Words -->
-                <div id="word-bank" class="flex flex-wrap gap-2 md:gap-3 min-h-[100px] items-start content-start">
+                <div id="word-bank" class="flex flex-wrap gap-2 md:gap-3 min-h-[120px] items-start content-start bg-app-surface p-4 rounded-xl border border-app-border shadow-sm relative">
                     <!-- Bank items injected via JS -->
-                </div>
-                <div id="bank-empty-state" class="text-center text-stone-500 text-sm italic w-full py-4 font-medium">
-                    Scan QR codes to fill your bank.
+                    <div id="bank-empty-state" class="absolute inset-0 flex items-center justify-center text-center text-gray-500 text-sm font-medium w-full h-full pointer-events-none">
+                        Scan QR codes to fill your bank.
+                    </div>
                 </div>
             </div>
         </div>
 
         <!-- THE GATEKEEPER TICKET (Hidden until Victory) -->
         <div id="victory-ticket" class="hidden w-full mt-4 transform rotate-1 transition-transform duration-500 hover:rotate-0">
-            <div class="bg-amber-500 p-2 rounded-lg shadow-[0_10px_25px_rgba(217,119,6,0.5)] ticket-cutout">
-                <div class="bg-black border-4 border-dashed border-amber-500 p-6 md:p-8 rounded text-center relative overflow-hidden">
-                    <div class="absolute top-0 left-0 w-full h-2 opacity-30 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,#d97706_2px,#d97706_4px)]"></div>
-                    
-                    <h3 class="text-amber-500 uppercase tracking-widest text-xs font-bold mb-2">Sequence Verified</h3>
+            <div class="bg-app-accent p-1.5 rounded-2xl shadow-[0_10px_30px_rgba(59,130,246,0.3)] ticket-cutout">
+                <div class="bg-[#0f172a] border-2 border-dashed border-app-accent p-6 md:p-8 rounded-xl text-center relative overflow-hidden">
+                    <h3 class="text-app-accent uppercase tracking-widest text-xs font-bold mb-2 drop-shadow-md">Sequence Verified</h3>
                     <h2 class="text-white text-3xl md:text-4xl font-black uppercase mb-4 tracking-wider">Gatekeeper Code</h2>
                     
-                    <p class="text-stone-300 italic text-sm md:text-base mb-6 px-4">
+                    <p class="text-gray-300 italic text-sm md:text-base mb-8 px-2 font-medium">
                         "The devil will offer you the world and it will cost you your soul. Jesus will give you everything, but it cost His life."
                     </p>
 
-                    <div class="bg-amber-500 text-black font-mono text-3xl md:text-5xl py-4 px-2 font-bold tracking-widest rounded shadow-inner" id="master-code">
+                    <div class="bg-app-accent text-white font-mono text-3xl md:text-5xl py-5 px-2 font-black tracking-widest rounded-lg shadow-inner" id="master-code">
                         <!-- Code injected here -->
                     </div>
                     
-                    <p class="text-amber-600 mt-6 text-xs font-bold uppercase tracking-widest">Screenshot & Show to Treasurer</p>
-                    
-                    <div class="absolute bottom-0 left-0 w-full h-2 opacity-30 bg-[repeating-linear-gradient(90deg,transparent,transparent_2px,#d97706_2px,#d97706_4px)]"></div>
+                    <p class="text-blue-300 mt-6 text-xs font-bold uppercase tracking-widest">Screenshot & Show to Treasurer</p>
                 </div>
             </div>
+        </div>
+
+        <!-- Admin Reset Button (Hidden subtly at the bottom) -->
+        <div class="mt-8 text-center w-full">
+            <button onclick="adminReset()" class="text-[#333333] hover:text-gray-500 transition-colors text-[10px] uppercase tracking-widest font-bold no-select outline-none">
+                Admin Reset
+            </button>
         </div>
 
     </main>
@@ -206,7 +212,6 @@
             'Q8W9': 'life.' 
         };
 
-        // The EXACT text sequence required to win
         const correctTextSequence = [
             'The devil', 'will offer', 'you', 'the world', 'and it', 'will cost', 
             'you', 'your soul.', 'Jesus', 'will give', 'you everything,', 
@@ -216,9 +221,9 @@
         const TOTAL_WORDS = 14;
 
         // 2. STATE MANAGEMENT
-        const KEYS_STORAGE = 'fsu_puzzle_keys_v4';
-        const GRID_STORAGE = 'fsu_puzzle_grid_v4';
-        const CODE_STORAGE = 'fsu_puzzle_auth_v4';
+        const KEYS_STORAGE = 'fsu_puzzle_keys_dark';
+        const GRID_STORAGE = 'fsu_puzzle_grid_dark';
+        const CODE_STORAGE = 'fsu_puzzle_auth_dark';
         
         let unlockedKeys = JSON.parse(localStorage.getItem(KEYS_STORAGE)) || [];
         
@@ -229,25 +234,15 @@
 
         let pendingChallengeID = null;
 
-        // 3. ADMIN RESET LOGIC (Triple Tap)
-        let tapCount = 0;
-        let tapTimer = null;
-
-        function handleProgressTap() {
-            tapCount++;
-            clearTimeout(tapTimer);
-            if (tapCount >= 3) {
-                if(confirm("ADMIN OVERRIDE: Reset all student progress?")) {
-                    localStorage.removeItem(KEYS_STORAGE);
-                    localStorage.removeItem(GRID_STORAGE);
-                    localStorage.removeItem(CODE_STORAGE);
-                    window.location.replace(window.location.pathname);
-                }
-                tapCount = 0;
-            } else {
-                tapTimer = setTimeout(() => { tapCount = 0; }, 1500);
+        // 3. ADMIN RESET LOGIC (Moved to bottom button)
+        window.adminReset = function() {
+            if(confirm("ADMIN OVERRIDE: Are you sure you want to completely erase all progress?")) {
+                localStorage.removeItem(KEYS_STORAGE);
+                localStorage.removeItem(GRID_STORAGE);
+                localStorage.removeItem(CODE_STORAGE);
+                window.location.replace(window.location.pathname);
             }
-        }
+        };
 
         // 4. CORE ENGINE
         function init() {
@@ -272,17 +267,17 @@
             if (scannedKey) {
                 const upperKey = scannedKey.toUpperCase();
                 
-                // Immediately remove the parameter from URL to prevent refresh triggers
+                // Erase URL param
                 window.history.replaceState({}, document.title, window.location.pathname);
 
                 if (wordMap[upperKey]) {
                     if (!unlockedKeys.includes(upperKey)) {
-                        // Valid & New: Trigger the Challenge Modal
+                        // Valid & New: Trigger Challenge Modal
                         pendingChallengeID = upperKey;
                         document.getElementById('challenge-modal').classList.remove('hidden');
                         document.getElementById('challenge-input').focus();
                     } else {
-                        showToast(`Word already securely stored in your bank.`, 'info');
+                        showToast(`Word already safely stored in your bank.`, 'info');
                     }
                 } else {
                     showToast('ERROR: Invalid or Corrupted QR Code.', 'error');
@@ -290,10 +285,9 @@
             }
         }
 
-        // RED TEAM FIX: Robust string cleaner for case-insensitive, punctuation-free comparison
+        // RED TEAM FIX: Robust string cleaner
         function cleanString(str) {
             if (!str) return "";
-            // Lowercase, remove all non-alphanumeric chars (except spaces), collapse multiple spaces, and trim edges
             return str.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
         }
 
@@ -308,23 +302,22 @@
             const cleanedTarget = cleanString(targetWord);
 
             if (cleanedInput === cleanedTarget) {
-                // Correct! Unlock the word
+                // Unlock the word
                 unlockedKeys.push(pendingChallengeID);
                 localStorage.setItem(KEYS_STORAGE, JSON.stringify(unlockedKeys));
                 
                 closeChallengeModal();
-                showToast(`Access Granted: "${targetWord}" extracted.`, 'success');
+                showToast(`Data Extracted: "${targetWord}"`, 'success');
                 renderUI();
                 checkVictory();
             } else {
-                // Incorrect
                 showToast('Authentication Failed. Incorrect word.', 'error');
                 inputEl.value = '';
                 inputEl.focus();
             }
         }
 
-        function closeChallengeModal() {
+        window.closeChallengeModal = function() {
             document.getElementById('challenge-modal').classList.add('hidden');
             document.getElementById('challenge-input').value = '';
             pendingChallengeID = null;
@@ -363,18 +356,24 @@
             const emptyState = document.getElementById('bank-empty-state');
             
             gridContainer.innerHTML = '';
-            bankContainer.innerHTML = '';
+            // Clear bank but keep empty state element
+            const bankChildren = Array.from(bankContainer.children);
+            bankChildren.forEach(child => {
+                if(child.id !== 'bank-empty-state') child.remove();
+            });
 
             // Render Assembly Grid
             gridState.forEach((key, index) => {
                 const slot = document.createElement('div');
+                // Base Mobile Requirement: min-h-[44px] (h-11)
                 
                 if (key === null) {
-                    slot.className = 'h-10 min-w-[3rem] flex-grow md:flex-grow-0 md:w-[5.5rem] rugged-border-dashed rounded flex items-center justify-center text-stone-600 text-xs font-bold no-select';
+                    slot.className = 'h-11 min-w-[3.5rem] flex-grow md:flex-grow-0 md:w-[6rem] border-2 border-dashed border-app-border rounded-lg flex items-center justify-center text-gray-600 text-xs font-bold no-select bg-[#121212]/50';
                     slot.innerText = index + 1;
                 } else {
                     const textContent = wordMap[key];
-                    slot.className = 'bg-rugged-accent text-white font-bold px-3 py-2 rugged-border-active cursor-pointer no-select tile-pop rounded text-sm md:text-base shadow-md flex-grow md:flex-grow-0 text-center';
+                    // Sleek glowing tile
+                    slot.className = 'h-11 flex-grow md:flex-grow-0 flex items-center justify-center bg-[#1a1a1a] border text-white font-medium px-4 rounded-lg cursor-pointer no-select tile-interactive pop-in text-sm shadow-md grid-glow text-center';
                     slot.innerText = textContent;
                     slot.onclick = () => moveToBank(index);
                 }
@@ -388,7 +387,8 @@
                     wordsInBank++;
                     const textContent = wordMap[key];
                     const tile = document.createElement('div');
-                    tile.className = 'bg-stone-700 text-stone-100 font-bold px-3 py-2 rugged-border cursor-pointer no-select tile-pop rounded text-sm md:text-base hover:bg-stone-600 shadow-md';
+                    // Sleek bank tile (no glow, subtle border)
+                    tile.className = 'h-11 flex items-center justify-center bg-[#1e1e1e] border border-app-border text-gray-200 font-medium px-4 rounded-lg cursor-pointer no-select tile-interactive pop-in text-sm shadow-sm hover:bg-[#252525]';
                     tile.innerText = textContent;
                     tile.onclick = () => moveToGrid(key);
                     bankContainer.appendChild(tile);
@@ -408,16 +408,12 @@
             }
         }
 
-        // 7. VERIFICATION LOGIC (RED TEAM VERIFIED: Solves Duplicate Bug)
+        // 7. VERIFICATION LOGIC
         function checkVictory() {
-            // Check if grid is full
             if (gridState.includes(null)) return;
 
-            // Map the current grid state (IDs) to their actual text values
             const currentTextSequence = gridState.map(id => wordMap[id]);
 
-            // Compare the text arrays exactly. Because "you" matches "you" perfectly 
-            // regardless of the underlying ID (T5Y6 or D3F4), the user can't place it "wrong".
             let isCorrect = true;
             for (let i = 0; i < TOTAL_WORDS; i++) {
                 if (currentTextSequence[i] !== correctTextSequence[i]) {
@@ -427,12 +423,10 @@
             }
 
             if (isCorrect) {
-                // Hide game, show ticket
                 document.getElementById('game-section').classList.add('hidden');
                 const ticketSection = document.getElementById('victory-ticket');
                 ticketSection.classList.remove('hidden');
 
-                // Generate or retrieve Auth Code
                 let authCode = localStorage.getItem(CODE_STORAGE);
                 if (!authCode) {
                     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -443,11 +437,9 @@
                     localStorage.setItem(CODE_STORAGE, authCode);
                 }
 
-                // Format: ABC-1234
                 const formattedCode = authCode.substring(0,3) + '-' + authCode.substring(3);
                 document.getElementById('master-code').innerText = formattedCode;
             } else {
-                // Filled but incorrect
                 showToast('Sequence Incorrect. Check your sentence logic!', 'error');
             }
         }
@@ -458,11 +450,11 @@
             container.classList.remove('hidden');
 
             const toast = document.createElement('div');
-            let bgClass = 'bg-stone-800 border-stone-600';
-            if(type === 'success') bgClass = 'bg-rugged-accent border-amber-400';
-            if(type === 'error') bgClass = 'bg-red-700 border-red-400';
+            let bgClass = 'bg-[#1a1a1a] border-app-border text-white';
+            if(type === 'success') bgClass = 'bg-app-accent border-blue-400 text-white shadow-[0_0_15px_rgba(59,130,246,0.3)]';
+            if(type === 'error') bgClass = 'bg-red-600 border-red-400 text-white shadow-[0_0_15px_rgba(220,38,38,0.3)]';
 
-            toast.className = `${bgClass} text-white px-6 py-4 border-2 shadow-lg font-bold uppercase tracking-wide text-sm toast-animate`;
+            toast.className = `${bgClass} px-6 py-4 border rounded-lg shadow-xl font-bold uppercase tracking-wider text-xs md:text-sm toast-animate text-center`;
             toast.innerText = message;
 
             container.appendChild(toast);
@@ -472,10 +464,9 @@
                 toast.style.transform = 'translateY(-10px)';
                 toast.style.transition = 'all 0.3s ease';
                 setTimeout(() => toast.remove(), 300);
-            }, 3500);
+            }, 3000);
         }
 
-        // Boot the app
         window.onload = init;
     </script>
 </body>
