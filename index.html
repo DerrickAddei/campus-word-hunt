@@ -25,7 +25,7 @@
         }
     </script>
     <style>
-        /* RED TEAM FIX: Prevent mobile pull-to-refresh */
+        /* Prevent mobile pull-to-refresh */
         html, body {
             overscroll-behavior-y: none;
             background-color: #121212;
@@ -101,8 +101,8 @@
 
     <div id="toast-container" class="fixed top-4 left-4 right-4 z-50 flex flex-col gap-2 pointer-events-none hidden"></div>
 
-    <div id="challenge-modal" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50 hidden px-4 modal-animate">
-        <div class="bg-app-surface border border-app-border p-6 max-w-sm w-full text-center shadow-2xl rounded-xl">
+    <div id="challenge-modal" class="fixed inset-0 bg-black/90 flex items-start pt-24 md:items-center md:pt-0 justify-center z-50 hidden px-4 modal-animate overflow-y-auto">
+        <div class="bg-app-surface border border-app-border p-6 max-w-sm w-full text-center shadow-2xl rounded-xl my-auto">
             <svg class="w-12 h-12 mx-auto text-app-accent mb-4 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
             <h2 class="text-white font-black uppercase tracking-widest text-xl mb-2">Location Secured</h2>
             <p class="text-gray-400 mb-6 text-sm font-medium">Enter the missing word found at this location to unlock the clue.</p>
@@ -204,9 +204,9 @@
         const TOTAL_WORDS = 14;
 
         // 2. STATE MANAGEMENT
-        const KEYS_STORAGE = 'fsu_puzzle_keys_v5';
-        const GRID_STORAGE = 'fsu_puzzle_grid_v5';
-        const CODE_STORAGE = 'fsu_puzzle_auth_v5';
+        const KEYS_STORAGE = 'fsu_puzzle_keys_prod';
+        const GRID_STORAGE = 'fsu_puzzle_grid_prod';
+        const CODE_STORAGE = 'fsu_puzzle_auth_prod';
         
         let unlockedKeys = JSON.parse(localStorage.getItem(KEYS_STORAGE)) || [];
         
@@ -217,7 +217,7 @@
 
         let pendingChallengeID = null;
 
-        // 3. ADMIN RESET LOGIC (Moved to bottom button)
+        // 3. ADMIN RESET LOGIC
         window.adminReset = function() {
             if(confirm("ADMIN OVERRIDE: Are you sure you want to completely erase all progress?")) {
                 localStorage.removeItem(KEYS_STORAGE);
@@ -250,7 +250,7 @@
             if (scannedKey) {
                 const upperKey = scannedKey.toUpperCase();
                 
-                // Erase URL param
+                // RED TEAM FIX: Erase URL param to prevent false triggers on refresh
                 window.history.replaceState({}, document.title, window.location.pathname);
 
                 if (wordMap[upperKey]) {
@@ -259,7 +259,7 @@
                         pendingChallengeID = upperKey;
                         document.getElementById('challenge-modal').classList.remove('hidden');
                         
-                        // RED TEAM FIX: Delay focus to ensure mobile keyboard triggers after modal paints
+                        // Delay focus to ensure mobile keyboard triggers after modal paints
                         setTimeout(() => {
                             document.getElementById('challenge-input').focus();
                         }, 100);
@@ -273,7 +273,7 @@
             }
         }
 
-        // RED TEAM FIX: Robust string cleaner
+        // Robust string cleaner for validation
         function cleanString(str) {
             if (!str) return "";
             return str.toLowerCase().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ').trim();
